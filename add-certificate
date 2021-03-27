@@ -1,0 +1,25 @@
+#!/bin/bash
+
+input=$1
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )" # the directory in which this script is located.
+file_name=$(basename $input)
+temp_dir=/tmp/$file_name
+
+output=rebuilt-$file_name
+ks_file=$DIR/key.keystore
+alias=alias_name
+key_pass=alialiali
+ks_pass=alialiali
+
+apktool d $input -o $temp_dir -f
+
+# # add custom cacert
+sed -i.bak -e "s/<application/<application android:networkSecurityConfig=\"@xml\/network_security_config\" /g" $temp_dir/AndroidManifest.xml
+cp $DIR/network_security_config.xml $temp_dir/res/xml
+
+# # rebuild
+apktool b $temp_dir -o $temp_dir/output.apk
+zipalign -p 4 $temp_dir/output.apk $output
+
+# # sign
+apksigner sign --ks $ks_file --ks-key-alias $alias  --ks-pass pass:$ks_pass --key-pass pass:$key_pass  $output
